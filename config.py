@@ -31,7 +31,7 @@ C.abs_dir = osp.realpath(".")
 C.this_dir = C.abs_dir.split(osp.sep)[-1]
 
 C.root_dir = C.abs_dir[:C.abs_dir.index(C.repo_name) + len(C.repo_name)]
-C.log_dir = r'/content/drive/MyDrive/_Anime_paper_/log'
+C.log_dir = r'/content/drive/MyDrive/_Anime_paper_/0429_nc/log'
 C.tb_dir = osp.abspath(osp.join(C.log_dir, "tb"))
 
 C.log_dir_link = osp.join(C.abs_dir, 'log')
@@ -40,7 +40,7 @@ C.log_dir_link = osp.join(C.abs_dir, 'log')
 if os.getenv('snapshot_dir'):
     C.snapshot_dir = osp.join(os.environ['snapshot_dir'], "snapshot")
 else:
-    C.snapshot_dir = r'/content/drive/MyDrive/_Anime_paper_/log'
+    C.snapshot_dir = r'/content/drive/MyDrive/_Anime_paper_/0429_nc/log'
 
 exp_time = time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime())
 C.log_file = C.log_dir + '/log_' + exp_time + '.log'
@@ -55,7 +55,7 @@ C.dataset_path = osp.join(C.volna)
 C.img_root_folder = C.dataset_path
 C.gt_root_folder = C.dataset_path
 #C.pretrained_model = C.volna + 'DATA/pytorch-weight/resnet50_v1c.pth'
-C.pretrained_model = r'/content/drive/MyDrive/_Anime_paper_/log/' + 'epoch-20.pth'
+C.pretrained_model = None
 """ Path Config """
 def add_path(path):
     if path not in sys.path:
