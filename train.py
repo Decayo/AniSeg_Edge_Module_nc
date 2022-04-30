@@ -212,7 +212,10 @@ if __name__ == '__main__':
                     
                     #loss_sup = criterion(sup_pred_l, gts)
                     edges = generate_edge_tensor(gts)
-                    
+                    pred_unsup_l = F.interpolate(input=pred_unsup_l[0][-1], size=(h, w),
+                                        mode='bilinear', align_corners=True)
+                    pred_unsup_r = F.interpolate(input=pred_unsup_r[0][-1], size=(h, w),
+                                        mode='bilinear', align_corners=True)                    
                     pred_sup_l =  F.interpolate(input=l_c2pe_output[0][-1], size=(h, w),
                                         mode='bilinear', align_corners=True)
                     pred_sup_r = F.interpolate(input=r_c2pe_output[0][-1], size=(h, w),
@@ -278,7 +281,7 @@ if __name__ == '__main__':
                 pbar.set_description(print_str, refresh=False)
 
                 end_time = time.time()
-            f=open(r'/content/drive/MyDrive/_Anime_paper_/log'+"loss.txt", "a+")
+            f=open(r'/content/drive/MyDrive/_Anime_paper_/0429_nc/logloss.txt', "a+")
             f.write('epoch %d\r\n'%epoch)
             f.write(str(sum_loss_sup / len(pbar))+'\r\n')
             f.write(str(sum_loss_sup_r / len(pbar))+'\r\n')
