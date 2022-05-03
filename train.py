@@ -281,7 +281,7 @@ if __name__ == '__main__':
                 pbar.set_description(print_str, refresh=False)
 
                 end_time = time.time()
-            f=open(r'/content/drive/MyDrive/_Anime_paper_/0429_nc/logloss.txt', "a+")
+            f=open(config.loss_log, "a+")
             f.write('epoch %d\r\n'%epoch)
             f.write(str(sum_loss_sup / len(pbar))+'\r\n')
             f.write(str(sum_loss_sup_r / len(pbar))+'\r\n')
