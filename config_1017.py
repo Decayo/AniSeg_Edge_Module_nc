@@ -66,7 +66,7 @@ add_path(osp.join(C.root_dir, 'furnace'))
 ''' Experiments Setting '''
 #C.labeled_ratio = 8     # ratio of labeled set
 #C.train_source = osp.join(C.dataset_path, "subset_train_aug/train_aug_labeled_1-{}.txt".format(C.labeled_ratio))
-C.train_source = osp.join(C.dataset_path, "train_1017.txt")
+C.train_source = osp.join(C.dataset_path, "train_517.txt")
 C.unsup_source = osp.join(C.dataset_path, "unsuper_train.txt")
 C.eval_source = osp.join(C.dataset_path, "val.txt")
 C.is_test = False
@@ -91,9 +91,9 @@ C.image_mean = np.array([0.485, 0.456, 0.406])  # 0.485, 0.456, 0.406
 C.image_std = np.array([0.229, 0.224, 0.225])
 C.image_height = 512
 C.image_width = 512
-C.num_train_imgs = 1017
+C.num_train_imgs = 703
 C.num_eval_imgs = 275
-C.num_unsup_imgs = 16000 -  C.num_train_imgs   # unsupervised samples
+C.num_unsup_imgs = 14805 -  C.num_train_imgs   # unsupervised samples
 
 """Train Config"""
 if os.getenv('learning_rate'):
