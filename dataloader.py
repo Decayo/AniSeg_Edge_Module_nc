@@ -36,7 +36,7 @@ def random_3d_transformation(img,gt):
           img_augmented_image = img_augmented_image.astype(np.int32)
           gt_img = gt_augmented_image.astype(np.int32)
       
-      gt_img[gt_img>12] = 0
+      gt[gt>config.num_classes] = 0
       gt_img[gt_img<0] = 0
         
 
@@ -86,7 +86,7 @@ class TrainPre(object):
             img, gt, scale = random_scale(img, gt, config.train_scale_array)
             
         if gt is not None:
-            gt[gt>12] = 0
+            gt[gt>config.num_classes] = 0
             gt[gt<0] = 0
         #img, gt = random_3d_transformation(img,gt)
 
