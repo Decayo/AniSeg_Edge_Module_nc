@@ -24,32 +24,31 @@ if os.getenv('volna') is not None:
     C.volna = os.environ['volna']
 else:
     #C.volna = '/home/cxk/msra_container/' # the path to the data dir.
-    C.volna = r'/content/AniSeg_Edge_Module_nc/AniSeg'
+    C.volna = r'/content/AniSeg_Edge_Module_0414/AniSeg'
 """please config ROOT_dir and user when u first using"""
-C.repo_name = 'AniSeg_Edge_Module_nc'
+C.repo_name = 'AniSeg_Edge_Module_0414'
 C.abs_dir = osp.realpath(".")
 C.this_dir = C.abs_dir.split(osp.sep)[-1]
 
 C.root_dir = C.abs_dir[:C.abs_dir.index(C.repo_name) + len(C.repo_name)]
-C.log_dir = r'/content/drive/MyDrive/_Anime_paper_/0429_nc/log'
+C.log_dir = r'/content/drive/MyDrive/_Anime_paper_/0509_1017_exp/A100_12_nc_re/log'
 C.tb_dir = osp.abspath(osp.join(C.log_dir, "tb"))
 
 C.log_dir_link = osp.join(C.abs_dir, 'log')
-
-
 
 # snapshot dir that stores checkpoints
 if os.getenv('snapshot_dir'):
     C.snapshot_dir = osp.join(os.environ['snapshot_dir'], "snapshot")
 else:
-    C.snapshot_dir = r'/content/drive/MyDrive/_Anime_paper_/0429_nc/log'
+    C.snapshot_dir = r'/content/drive/MyDrive/_Anime_paper_/0509_1017_exp/A100_12_nc_re/log'
 
 exp_time = time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime())
 C.log_file = C.log_dir + '/log_' + exp_time + '.log'
 C.link_log_file = C.log_file + '/log_last.log'
 C.val_log_file = C.log_dir + '/val_' + exp_time + '.log'
 C.link_val_log_file = C.log_dir + '/val_last.log'
-C.loss_log = r'/content/drive/MyDrive/_Anime_paper_/0429_nc/logloss.txt'
+C.loss_log = r'/content/drive/MyDrive/_Anime_paper_/0509_1017_exp/A100_12_nc_re/log'+"loss_16.txt"
+
 """ Data Dir and Weight Dir """
 #0312 changed
 #C.dataset_path = osp.join(C.volna, 'DATA/pascal_voc')
@@ -67,7 +66,7 @@ add_path(osp.join(C.root_dir, 'furnace'))
 ''' Experiments Setting '''
 #C.labeled_ratio = 8     # ratio of labeled set
 #C.train_source = osp.join(C.dataset_path, "subset_train_aug/train_aug_labeled_1-{}.txt".format(C.labeled_ratio))
-C.train_source = osp.join(C.dataset_path, "train_517.txt")
+C.train_source = osp.join(C.dataset_path, "train_1017.txt")
 C.unsup_source = osp.join(C.dataset_path, "unsuper_train.txt")
 C.eval_source = osp.join(C.dataset_path, "val.txt")
 C.is_test = False
@@ -76,7 +75,6 @@ C.bn_eps = 1e-5
 C.bn_momentum = 0.1
 
 C.cps_weight = 5
-C.prob_threshold = 0.85
 """Cutmix Config"""
 C.cutmix_mask_prop_range = (0.25, 0.5)
 C.cutmix_boxmask_n_boxes = 1
@@ -92,21 +90,21 @@ C.image_mean = np.array([0.485, 0.456, 0.406])  # 0.485, 0.456, 0.406
 C.image_std = np.array([0.229, 0.224, 0.225])
 C.image_height = 512
 C.image_width = 512
-C.num_train_imgs = 703
+C.num_train_imgs = 1017
 C.num_eval_imgs = 275
-C.num_unsup_imgs = 10537 -  C.num_train_imgs   # unsupervised samples
+C.num_unsup_imgs = 16000 -  C.num_train_imgs   # unsupervised samples
 
 """Train Config"""
 if os.getenv('learning_rate'):
     C.lr = float(os.environ['learning_rate'])
 else:
-    C.lr = 0.005
+    C.lr = 0.007
 
 if os.getenv('batch_size'):
     #C.batch_size = int(os.environ['batch_size'])
-    C.batch_size =18
+    C.batch_size = 17
 else:
-    C.batch_size =18
+    C.batch_size = 17
 
 C.lr_power = 0.9
 C.momentum = 0.9

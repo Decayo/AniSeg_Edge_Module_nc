@@ -25,7 +25,7 @@ from c2pe_loss.c2pe_criterion import CriterionAll
 from c2pe_loss.target_generation import generate_edge_tensor
 # from seg_opr.sync_bn import DataParallelModel, Reduce, BatchNorm2d
 from tensorboardX import SummaryWriter
-
+from utils.warmup_scheduler import SGDRScheduler
 scaler = torch.cuda.amp.GradScaler()
 # try:
 #     from apex.parallel import DistributedDataParallel, SyncBatchNorm
@@ -82,8 +82,9 @@ if __name__ == '__main__':
 
         train_loader, train_sampler = get_train_loader(engine, AniSeg, train_source=config.train_source, \
                                                     unsupervised=False, collate_fn=collate_fn)
-        unsupervised_train_loader, unsupervised_train_sampler_0 = get_train_loader(engine, AniSeg, \
-                    train_source=config.unsup_source, unsupervised=True, collate_fn=mask_collate_fn)
+
+        unsupervised_train_loader, unsupervised_train_sampler = get_train_loader(engine, AniSeg, \
+                    train_source=config.unsup_source, unsupervised=True, collate_fn=collate_fn)
 
         if engine.distributed and (engine.local_rank == 0):
             tb_dir = config.tb_dir + '/{}'.format(time.strftime("%b%d_%d-%H-%M", time.localtime()))
@@ -143,8 +144,10 @@ if __name__ == '__main__':
                                     momentum=config.momentum,
                                     weight_decay=config.weight_decay)
 
-
-
+        lr_scheduler_r = SGDRScheduler(optimizer_r, total_epoch=config.nepochs,
+                                 eta_min=config.lr / 100, warmup_epoch=10,
+                                 start_cyclical=100, cyclical_base_lr=config.lr / 2,
+                                 cyclical_epoch=10)
         # config lr policy
         total_iteration = config.nepochs * config.niters_per_epoch
         lr_policy = WarmUpPolyLR(base_lr, config.lr_power, total_iteration, config.niters_per_epoch * config.warm_up_epoch)
@@ -176,10 +179,10 @@ if __name__ == '__main__':
                 pbar = tqdm(range(10), file=sys.stdout, bar_format=bar_format)
             else:
                 pbar = tqdm(range(config.niters_per_epoch), file=sys.stdout, bar_format=bar_format)
-
+            lr_scheduler_r.step(epoch=epoch)
+            lr = lr_scheduler_r.get_lr()[0]
             dataloader = iter(train_loader)
-            unsupervised_dataloader= iter(unsupervised_train_loader)
-
+            unsupervised_dataloader = iter(unsupervised_train_loader)
             sum_loss_sup = 0
             sum_loss_sup_r = 0
             sum_cps = 0
@@ -190,50 +193,59 @@ if __name__ == '__main__':
                 optimizer_r.zero_grad()
                 engine.update_iteration(epoch, idx)
                 start_time = time.time()
+                optimizer_l.zero_grad()
+                optimizer_r.zero_grad()
+                engine.update_iteration(epoch, idx)
 
                 minibatch = dataloader.next()
                 unsup_minibatch = unsupervised_dataloader.next()
                 imgs = minibatch['data']
                 gts = minibatch['label']
                 unsup_imgs = unsup_minibatch['data']
-
                 imgs = imgs.cuda(non_blocking=True)
-                gts = gts.cuda(non_blocking=True)
                 unsup_imgs = unsup_imgs.cuda(non_blocking=True)
-                h, w = imgs.size(2), imgs.size(3)
-                # unsupervised loss on model/branch#1
+                gts = gts.cuda(non_blocking=True)
                 with torch.cuda.amp.autocast():
-                    # unsupervised loss on both models
-                    pred_unsup_l = model(unsup_imgs, step=1)
-                    pred_unsup_r = model(unsup_imgs, step=2)
-                    # supervised loss on both models
+                    h, w = unsup_imgs.size(2), unsup_imgs.size(3)
+                    # unsuper model ------- 
+                    # Get student#1 prediction for mixed image
+
+
+
+                    s1_ce29_group = model(unsup_imgs, step=1)
+                    # Get student#2 prediction for mixed image
+                    s2_ce29_group = model(unsup_imgs, step=2)
+                    pred_unsup_l =  F.interpolate(input=s1_ce29_group[0][-1], size=(h, w),
+                                       mode='bilinear', align_corners=True)
+                    pred_unsup_r =  F.interpolate(input=s2_ce29_group[0][-1], size=(h, w),
+                                       mode='bilinear', align_corners=True)
                     l_c2pe_output = model(imgs, step=1)
                     r_c2pe_output = model(imgs, step=2)
                     
-                    #loss_sup = criterion(sup_pred_l, gts)
-                    edges = generate_edge_tensor(gts)
-                    pred_unsup_l = F.interpolate(input=pred_unsup_l[0][-1], size=(h, w),
-                                        mode='bilinear', align_corners=True)
-                    pred_unsup_r = F.interpolate(input=pred_unsup_r[0][-1], size=(h, w),
-                                        mode='bilinear', align_corners=True)                    
+                    h, w = imgs.size(2), imgs.size(3)
                     pred_sup_l =  F.interpolate(input=l_c2pe_output[0][-1], size=(h, w),
-                                        mode='bilinear', align_corners=True)
-                    pred_sup_r = F.interpolate(input=r_c2pe_output[0][-1], size=(h, w),
-                                        mode='bilinear', align_corners=True)
-                    
+                                       mode='bilinear', align_corners=True)
+                    pred_sup_r =  F.interpolate(input=r_c2pe_output[0][-1], size=(h, w),
+                                       mode='bilinear', align_corners=True)
                     pred_l = torch.cat([pred_sup_l, pred_unsup_l], dim=0)
                     pred_r = torch.cat([pred_sup_r, pred_unsup_r], dim=0)
-                    max_probs_l, max_l = torch.max(pred_l, dim=1)
-                    max_probs_r, max_r = torch.max(pred_r, dim=1)
+
+                    _, max_l = torch.max(pred_l, dim=1)
+                    _, max_r = torch.max(pred_r, dim=1)
                     max_l = max_l.long()
                     max_r = max_r.long()
-                    mask_l = max_probs_l.ge(config.prob_threshold).float()
-                    mask_r = max_probs_r.ge(config.prob_threshold).float()
-                    #use FixMatch probs mask 
-                    cps_loss = (F.cross_entropy(pred_l, max_r,
-                                  reduction='none',ignore_index=255) * mask_r).mean() + (F.cross_entropy(pred_r, max_l,
-                                  reduction='none',ignore_index=255) * mask_l).mean()
+
+                    # supervised loss on both models
+                    
+
+                    cps_loss = criterion(pred_l, max_r) + criterion(pred_r, max_l)
+                    #dist.all_reduce(cps_loss, dist.ReduceOp.SUM)
+                    #cps_loss = cps_loss / 1
                     cps_loss = cps_loss * config.cps_weight
+                    #loss_sup = criterion(sup_pred_l, gts)
+                    edges = generate_edge_tensor(gts)
+
+
                     loss_sup_l_c2pe = c2pe_criterion(l_c2pe_output,[gts.type(torch.cuda.LongTensor),
                                                                     edges.type(torch.cuda.LongTensor),
                                                                     None,None])
